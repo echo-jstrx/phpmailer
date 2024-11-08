@@ -1,12 +1,7 @@
 <?php
-function sendEmail($to, $subject, $templateFile, $placeholders) {
+function sendEmail($recipients, $subject, $templateFile) {
     // Read the email template file
     $template = file_get_contents($templateFile);
-
-    // Replace placeholders with actual values
-    foreach ($placeholders as $key => $value) {
-        $template = str_replace("[$key]", $value, $template);
-    }
 
     // Set up PHPMailer
     $mail = new PHPMailer(true);
@@ -21,34 +16,54 @@ function sendEmail($to, $subject, $templateFile, $placeholders) {
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
 
-        // Recipients
-        if (is_array($to)) {
-            foreach ($to as $email) {
-                $mail->addAddress($email);
+        // Loop through each recipient
+        foreach ($recipients as $recipient) {
+            $personalizedTemplate = $template;
+
+            // Replace placeholders with actual values
+            foreach ($recipient['placeholders'] as $key => $value) {
+                $personalizedTemplate = str_replace("[$key]", $value, $personalizedTemplate);
             }
-        } else {
-            $mail->addAddress($to);
+
+            // Clear previous recipients
+            $mail->clearAddresses();
+
+            // Add the current recipient
+            $mail->addAddress($recipient['email']);
+
+            // Content
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body    = $personalizedTemplate;
+
+            // Send the email
+            $mail->send();
+            echo "Email sent to {$recipient['email']}: $subject\n";
         }
-
-        // Content
-        $mail->isHTML(true);
-        $mail->Subject = $subject;
-        $mail->Body    = $template;
-
-        $mail->send();
-        echo "Email sent to $to: $subject\n";
     } catch (Exception $e) {
         echo "Failed to send email. Mailer Error: {$mail->ErrorInfo}\n";
     }
 }
 
 // Example usage
-$to = ['user1@example.com', 'user2@example.com'];
-$subject = 'Event Reminder';
-$templateFile = 'email_template.html';
-$placeholders = [
-    'NAME' => 'John Doe',
-    'EVENT_DATE' => '2024-12-25 18:00:00'
+$recipients = [
+    [
+        'email' => 'user1@example.com',
+        'placeholders' => [
+            'NAME' => 'John Doe',
+            'EVENT_DATE' => '2024-12-25 18:00:00'
+        ]
+    ],
+    [
+        'email' => 'user2@example.com',
+        'placeholders' => [
+            'NAME' => 'Jane Smith',
+            'EVENT_DATE' => '2024-12-25 18:00:00'
+        ]
+    ]
 ];
 
-sendEmail($to, $subject, $templateFile, $placeholders);
+$subject = 'Event Reminder';
+$templateFile = 'email_template.html';
+
+sendEmail($recipients, $subject, $templateFile);
