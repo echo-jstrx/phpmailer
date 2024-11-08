@@ -1,3 +1,4 @@
+<?php
 function sendEmail($to, $subject, $templateFile, $placeholders) {
     // Read the email template file
     $template = file_get_contents($templateFile);
